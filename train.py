@@ -1,5 +1,4 @@
 print("Loading external modules . . .")
-import numpy as np
 import random
 import pickle
 import initialization
@@ -31,7 +30,7 @@ while True:
     iteration += 1
     
     ### PART 1: SELF PLAY ###
-    _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory)
+    _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=True)
     memory.clear_short_term()
     
     if len(memory.long_term) >= config.MEMORY_CAP:

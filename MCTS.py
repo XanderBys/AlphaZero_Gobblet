@@ -14,13 +14,14 @@ class Node:
     
 class Edge:
     def __init__(self, in_node, out_node, prior, action):
-        self.id = in_node.env.id + '|' + out_node.env.id
+        self.id = "{}|{}".format(in_node.env.id, out_node.env.id)
         self.in_node = in_node
         self.out_node = out_node
         self.turn = in_node.env.turn
+        self.action = action
         # N: number of times the action from the state has been chosen
         # W: total value of next state
-        # Q: mean valeu of next state
+        # Q: mean value of next state
         # P: probability of selecting this action
         self.data = {'N':0, 'W':0, 'Q':0, 'P': prior}
 
@@ -49,20 +50,23 @@ class MCTS:
                 epsilon = 0
                 nu = [0] * len(curr_node.edges)
             
-            nb = 0
-            for action, edge in curr_node.edges:
-                nb += edge.data['N']
+            nb = sum(map(lambda edge: edge[1].data['N'], curr_node.edges))
             
             for idx, (action, edge) in enumerate(curr_node.edges):
-                # choose teh leaf that is most confident according to the formula
+                # choose the leaf that is most confident according to the formula
                 U = self.cpuct * ((1-epsilon)*edge.data['P'] + epsilon*nu[idx]) * np.sqrt(nb) / (1+edge.data['N'])
                 Q = edge.data['Q']
-                if Q + U > maxQU and curr_node.env.is_legal(action, curr_node.env.turn):
+                if Q + U > maxQU:
                     maxQU = Q + U
                     sim_action = action
                     sim_edge = edge
             
-            next_state, value, complete = curr_node.env.update(sim_action, curr_node.env.turn)
+            try:
+                next_state, value, complete = curr_node.env.update(sim_action)
+            except ValueError:
+                print(self.root.env.state)
+                raise ValueError
+            curr_node.env.undo_move()
             curr_node = sim_edge.out_node
             edges.append(sim_edge)
         

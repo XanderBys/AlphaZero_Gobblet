@@ -1,11 +1,7 @@
-import random
+import random, time
 import pickle
-import math
-import copy
 import numpy as np
 from State import State
-from Model import Model
-from Memory import Memory
 import MCTS
 import config
 
@@ -19,6 +15,11 @@ class Player:
         self.num_sims = num_sims
         self.cpuct = cpuct
         self.model = model
+        self.time_sims = 0
+        
+        self.train_loss = []
+        self.train_value_loss = []
+        self.train_policy_loss = []
     
     def run_simulation(self):
         leaf, value, done, edges = self.mcts.go_to_leaf()
@@ -28,20 +29,18 @@ class Player:
     def evaluate_state(self, state, value, complete, edges):
         if not complete:
             value, probs, legal_moves = self.predict_state(state.env)
-            probs = probs[legal_moves[0], legal_moves[1]]
             
-            for idx, action in enumerate(legal_moves.T):
-                new_state, val, complete = state.env.update(action, state.env.turn)
+            for action in legal_moves.T:
+                new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
-                if new_state.id not in self.mcts.tree:
-                    node = MCTS.Node(state.env.copy())
+                if new_state.id not in set(self.mcts.tree):
+                    node = MCTS.Node(new_state.copy())
                     self.mcts.add_node(node)
                 else:
                     node = self.mcts.tree[new_state.id]
-                
-                new_edge = MCTS.Edge(state, node, probs[idx], action)
+                new_edge = MCTS.Edge(state, node, probs[action[0], action[1]], action)
                 state.edges.append((action, new_edge))
-        
+                
         return (value, edges)
     
     def predict_state(self, state):
@@ -50,11 +49,14 @@ class Player:
         logits = logits[0].reshape(12, 16)
         
         # make sure illegal moves aren't chosen
-        moves = state.get_legal_moves_idxs(state.turn)
-        legal_moves = np.array(moves[0]).T
-        illegal_moves = np.array(moves[1]).T
+        moves = state.get_legal_moves_idxs()
+        legal_moves = np.array(moves).T
+        if len(legal_moves)==0:
+            print(state)
+        mask = np.ones(logits.shape, dtype=bool)
+        mask[legal_moves[0], legal_moves[1]] = False
+        logits[mask] = -100
         
-        logits[illegal_moves[0], illegal_moves[1]] = -100
         # put probabilities through softmax
         exps = np.exp(logits)
         probs = exps / np.sum(exps)
@@ -69,23 +71,31 @@ class Player:
         
         for sim in range(self.num_sims):
             self.run_simulation()
-        
+
         pi, vals = self.get_action_vals(1)
-        
         action, value = self.choose_action(pi, vals, tau)
-        next_state, _, complete = state.update(action, state.turn)
-        state.undo_move()
+        tree_state = self.mcts.root.env
+        #action = (tree_state.pieces[tree_state.pieces_idx][action[0]], (action[1] // tree_state.NUM_COLS, action[1] % tree_state.NUM_COLS))
+        try:
+            next_state, result, complete = tree_state.update(action)
+            tree_state.undo_move()
+        except ValueError as err:
+            print(state)
+            print(tree_state)
+            raise err
+        
         predicted_value = -1*self.predict_state(next_state)
         
-        return (action, pi, value, predicted_value)
+        return (action, pi, value, predicted_value, next_state, result, complete)
     
     def choose_action(self, pi, values, tau):
         if tau == 0:
             actions = np.argwhere(pi == np.amax(pi))
             action = tuple(random.choice(actions))
         else:
-            action_idx = np.random.multinomial(1, pi)
-            action = np.where(action_idx == 1)[0][0]
+            action_idx = np.random.multinomial(1, pi.reshape(-1)/sum(pi.reshape(-1))).reshape(pi.shape)
+            loc = np.where(action_idx == 1)
+            action = (loc[0][0], loc[1][0])
         
         value = values[action]
         
@@ -93,33 +103,35 @@ class Player:
     
     def get_action_vals(self, tau):
         pi = np.zeros((12, 16), dtype=np.float32)
-        vals = np.zeros((12, 16), dtype=np.int32)
+        vals = np.zeros((12, 16), dtype=np.float32)
         for action, edge in self.mcts.root.edges:
             pi[tuple(action)] = pow(edge.data['N'], 1/tau)
             vals[tuple(action)] = edge.data['Q']
-        pi /= (np.sum(pi) * 1.0)
+        
+        pi = pi.astype(float)
+        pi /= np.sum(pi)
         return pi, vals
     
     def train(self, memory):
         # train the model based on the reward
         for i in range(config.TRAINING_LOOPS):
             batch = random.sample(memory, min(config.BATCH_SIZE, len(memory)))
+            states = np.array([sample['state'].binary for sample in batch])
+            targets = {'value_head': np.array([sample['value'] for sample in batch]),
+                       'policy_head': np.array([sample['AV'] for sample in batch]).reshape(len(batch), 12*16)}
             
-            states = np.array([sample['state'].binary for sampmle in batch])
-            targets = {'values': np.array([sample['value'] for sample in batch]),
-                       'policy': np.array([sample['AV'] for sample in batch])}
-            hist = self.model.train_batch(states, training, epochs=config.EPOCHS).history
+            hist = self.model.train_batch(states.reshape(len(batch), 2, 64, 4), targets, epochs=config.EPOCHS).history
             self.train_loss.append(round(hist['loss'][config.EPOCHS-1],4))
             self.train_value_loss.append(round(hist['value_head_loss'][config.EPOCHS-1],4))
             self.train_policy_loss.append(round(hist['policy_head_loss'][config.EPOCHS-1],4))
         
     def build_MCTS(self, state):
-        root = MCTS.Node(state)
+        root = MCTS.Node(state.copy())
         self.mcts = MCTS.MCTS(root, self.cpuct)
         
     def change_MCTS_root(self, new_root):
         self.mcts.root = self.mcts.tree[new_root.id]
-        
+    
     def save_policy(self, prefix):
         fout = open("{}policy_{}".format(prefix, self.name), 'wb')
         pickle.dump(self.model, fout)
@@ -143,15 +155,17 @@ class Player:
     
 class Human(Player):
     def __init__(self, name, env, symbol):
-        super().__init__(name, env, symbol, 0)
+        super().__init__(name, env, symbol, 0, 0)
     
-    def choose_action(self, state, moves=None):
+    def move(self, state, tau=None):
         action = None
         
-        human_pieces = list(filter(lambda piece: piece.is_top_of_stack, self.pieces))
+        human_pieces = list(filter(lambda piece: piece.is_top_of_stack, state.pieces[state.pieces_idx]))
         print("Your pieces are: {}".format(list(map(str, human_pieces))))
         row = int(input("Type a row to move to: "))
         col = int(input("Type a col to move to: "))
         idx = int(input("Type the index of the piece: "))
         action = (human_pieces[idx], (row, col))
-        return action
+        next_state, result, complete = state.update(action)
+        
+        return (action, 0, 0, 0, next_state, result, complete)

@@ -1,8 +1,7 @@
 from keras.models import Model as keras_model
-from keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, LeakyReLU, add
+from keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, LeakyReLU, add
 from keras import regularizers
 from keras.optimizers import SGD
-import keras.backend as K
 import numpy as np
 from loss import softmax_crossentropy
 import config
@@ -98,8 +97,8 @@ class Model:
     
     def predict_batch(self, boards):
         return self.nn.predict(boards)
-    
-    def train_batch(self, x_batch, y_batch, batch, epochs=1, use_fit=True):
+     
+    def train_batch(self, x_batch, y_batch, epochs=1, use_fit=True):
         if use_fit:
             return self.nn.fit(x_batch, y_batch, verbose=0, epochs=epochs, batch_size=32)
         else:
