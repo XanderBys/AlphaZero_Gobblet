@@ -2,12 +2,13 @@ import copy
 import numpy as np
 from State import State
 from Piece import Piece
-
+import logging
+logging.basicConfig(filename="logs/Environment.log", level=logging.INFO)
 class Environment:
     def __init__(self, NUM_ROWS, NUM_COLS, DEPTH):
         self.state = None
-        self.moves_made = set()
-        self.duplicate_moves = set()
+        self.prev_states = set()
+        self.duplicate_states = set()
         self.draw_flag = False
         self.turn = None
         self.temp_cp = None
@@ -28,18 +29,20 @@ class Environment:
         self.draw_flag = False
         self.turn = 1
         self.initialize_pieces()
-    
+
+#   @jit(nopython=False)
     def update(self, action, turn=0, check_legal=True):
         # updates the board given an action represented as 2 indicies e.g. [0, 2]
         # returns [next_state, result]
         # where next_state is the board after action is taken
-        
+        logging.info("Storing copy of board . . .")
         self.temp_cp = self.copy()
         piece, location = action
         if type(piece) != Piece:
             piece = self.pieces[self.pieces_idx][piece]
             location = (location // self.NUM_COLS, location % self.NUM_COLS)
         
+        logging.info("Ensuring the move is legal . . .")
         if not self.is_legal((piece, location)):
             if check_legal:
                 print(self.state)
@@ -49,7 +52,8 @@ class Environment:
         
         if turn == 0:
             turn = self.turn
-         
+        
+        logging.info("Accounting for special rule . . .")
         if piece.is_on_board:
             # if the piece was on the board, set its origin to be empty
             self.state.board[piece.location] = 0
@@ -60,21 +64,23 @@ class Environment:
                 self.undo_lower_layers(tuple(piece.location))
            
         # update the board and the player
+        logging.info("Updating the board and pieces . . .")
         prev_occupant = int(self.state.board[location])
         self.state.board[location] = turn * piece.size
         piece.location = location
-#        if str(action_made) in self.duplicate_moves:
-#            self.draw_flag = True
-#        elif str(action_made) in self.moves_made:
-#            self.duplicate_moves.add(str(action_made))
-#        else:
-#            self.moves_made.add(str(action_made))
 
         self.update_pieces()
         
+        logging.info("Updating lower layers . . .")
         if prev_occupant != 0:
             self.update_lower_layers((piece, location), prev_occupant)
         
+        if self.id in self.duplicate_states:
+            self.draw_flag=True
+        elif self.id in self.prev_states:
+            self.duplicate_duplicate_states.add(self.id)
+        else:
+            self.moves_made.add(self.id)
         result = self.get_result(self.state)
         
         # update the turn tracker
@@ -156,7 +162,8 @@ class Environment:
         
         # check for draws
         # that is, if three identical moves have been made, it's a draw
-        if self.draw_flag or len(self.get_legal_moves_idxs())==0:
+        if self.draw_flag or len(self.get_legal_moves_idxs())==0 or len(self.prev_states) > 50: 
+            print("DRAW BY {}".format("REPETITION" if self.draw_flag else "NO MOVES"))
             return 0
             
         return None

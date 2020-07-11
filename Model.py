@@ -105,7 +105,7 @@ class Model:
             return self.nn.train_on_batch(x_batch, y_batch)
     
     def save(self, game, version):
-        self.nn.save("./models/version" + "{0:0>4}".format(version) + ".h5")
+        self.nn.save("models/version{}.h5".format(version))
         
     def plot(self):
         from keras.utils import plot_model

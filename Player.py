@@ -4,7 +4,8 @@ import numpy as np
 from State import State
 import MCTS
 import config
-
+import logging
+logging.basicConfig(filename="logs/Player.log", level=logging.INFO)
 class Player:
     def __init__(self, name, env, num_sims, cpuct, model):
         self.GAMMA = 0.9
@@ -23,13 +24,18 @@ class Player:
     
     def run_simulation(self):
         leaf, value, done, edges = self.mcts.go_to_leaf()
+        logging.info("Navigated to leaf")
         value, edges = self.evaluate_state(leaf, value, done, edges)
+        logging.info("Evaluated state")
         self.mcts.update_nodes(leaf, value, edges)
-    
+        logging.info("Updated nodes")
+        
     def evaluate_state(self, state, value, complete, edges):
         if not complete:
+            logging.info("Predicting state . . .")
             value, probs, legal_moves = self.predict_state(state.env)
             
+            logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
@@ -40,7 +46,7 @@ class Player:
                     node = self.mcts.tree[new_state.id]
                 new_edge = MCTS.Edge(state, node, probs[action[0], action[1]], action)
                 state.edges.append((action, new_edge))
-                
+        
         return (value, edges)
     
     def predict_state(self, state):
@@ -71,7 +77,7 @@ class Player:
         
         for sim in range(self.num_sims):
             self.run_simulation()
-
+        logging.info("Simulations complete")
         pi, vals = self.get_action_vals(1)
         action, value = self.choose_action(pi, vals, tau)
         tree_state = self.mcts.root.env
@@ -114,12 +120,15 @@ class Player:
     
     def train(self, memory):
         # train the model based on the reward
+        logging.info("Beginning training . . . ")
         for i in range(config.TRAINING_LOOPS):
+            logging.info("Formatting data . . .")
             batch = random.sample(memory, min(config.BATCH_SIZE, len(memory)))
             states = np.array([sample['state'].binary for sample in batch])
             targets = {'value_head': np.array([sample['value'] for sample in batch]),
                        'policy_head': np.array([sample['AV'] for sample in batch]).reshape(len(batch), 12*16)}
             
+            logging.info("Training neural network . . . ")
             hist = self.model.train_batch(states.reshape(len(batch), 2, 64, 4), targets, epochs=config.EPOCHS).history
             self.train_loss.append(round(hist['loss'][config.EPOCHS-1],4))
             self.train_value_loss.append(round(hist['value_head_loss'][config.EPOCHS-1],4))

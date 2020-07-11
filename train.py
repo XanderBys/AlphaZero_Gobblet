@@ -1,4 +1,6 @@
 print("Loading external modules . . .")
+import os
+import time
 import random
 import pickle
 import initialization
@@ -30,18 +32,21 @@ while True:
     iteration += 1
     
     ### PART 1: SELF PLAY ###
-    _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=True)
+    print("\n\n==================== SELF-PLAY ====================")
+    _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=False)
     memory.clear_short_term()
+    
+    if iteration % 2 == 0:
+        print("Saving memory . . .")
+        pickle.dump(memory, open("memory/{}.p".format(str(iteration).zfill(4)), 'wb+'))
     
     if len(memory.long_term) >= config.MEMORY_CAP:
         ### PART 2: RETRAINING ###
+        print("\n\n==================== RETRAINING ====================")
         curr_agent.train(memory.long_term)
-        
-        if iteration % 20 == 0:
-            print("Saving memory . . .")
-            pickle.dump(memory, open('./memory/' + str(iteration).zfill(4) + '.p'))
             
         ### PART 3: EVALUATION ###
+        print("\n\n==================== EVALUATION ====================")
         scores, _, points = play_matches(best_agent, curr_agent, config.EVAL_EPISODES, 0, None)
         
         if scores['curr_agent'] > scores['best_agent'] * config.SCORING_THRESHOLD:
@@ -49,4 +54,25 @@ while True:
             best_model.nn.set_weights(curr_model.nn.get_weights())
             print("Saving the new best model . . .")
             best_model.save(env.name, best_player_version)
-    print("{} iterations completed".format(iteration))
+            
+    print("""
+          \n\n========================================
+          \n{} iterations completed
+          \n========================================\n\n
+          """.format(iteration))
+    
+    try:
+        print("Program continuing in 10 seconds . . .")
+        time.sleep(10)
+    except KeyboardInterrupt:
+        print("Saving data and exiting training loop . . .")
+        
+        folder = "data/{}".format(time.strftime("%m_%d_%y_%H_%M_%S"))
+        os.mkdir(folder)
+        pickle.dump(curr_agent.train_loss, open("{}/train_overall_loss.p".format(folder), 'wb'))
+        pickle.dump(curr_agent.train_value_loss, open("{}/train_value_loss.p".format(folder), 'wb'))
+        pickle.dump(curr_agent.train_policy_loss, open("{}/train_policy_loss.p".format(folder), 'wb'))
+        
+        curr_model.save('', "final")
+        
+        break

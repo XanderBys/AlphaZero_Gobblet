@@ -1,17 +1,19 @@
 import numpy as np
 import config
-
+import logging
+logging.basicConfig(filename="logs/MCTS.log", level=logging.INFO)
 class Node:
     def __init__(self, env):
         self.env = env
         self.turn = env.turn
         self.id = env.id
         self.edges = []
+        logging.info("Node created")
     
     @property
     def is_leaf(self):
         return len(self.edges) == 0
-    
+
 class Edge:
     def __init__(self, in_node, out_node, prior, action):
         self.id = "{}|{}".format(in_node.env.id, out_node.env.id)
@@ -24,6 +26,7 @@ class Edge:
         # Q: mean value of next state
         # P: probability of selecting this action
         self.data = {'N':0, 'W':0, 'Q':0, 'P': prior}
+        logging.info("Edge created")
 
 class MCTS:
     def __init__(self, root, cpuct):
@@ -31,17 +34,19 @@ class MCTS:
         self.tree = {}
         self.cpuct = cpuct
         self.add_node(root)
+        logging.info("New Monte Carlo Tree created")
     
     def __len__(self):
         return len(self.tree)
     
     def go_to_leaf(self):
         edges = []
+        nodes_visited = {}
         curr_node = self.root
         complete = False
         value = 0
-        
-        while not curr_node.is_leaf:
+        logging.info("Navigating to leaf . . .")
+        while (not curr_node.is_leaf):
             maxQU = -999999
             if curr_node == self.root:
                 epsilon = config.EPSILON
@@ -61,18 +66,29 @@ class MCTS:
                     sim_action = action
                     sim_edge = edge
             
-            try:
-                next_state, value, complete = curr_node.env.update(sim_action)
-            except ValueError:
-                print(self.root.env.state)
-                raise ValueError
+            logging.info("Updating environment . . .")
+            next_state, value, complete = curr_node.env.update(sim_action)
             curr_node.env.undo_move()
             curr_node = sim_edge.out_node
+            
+            num_visits = nodes_visited.get(curr_node.id, 0)
+            if num_visits == 0:
+                nodes_visited[curr_node.id] = 1
+            else:
+                nodes_visited[curr_node.id] += 1
+
+                if nodes_visited[curr_node.id] >= 3:
+                    complete = True
+                    value = 0
+                    break
+            
+            logging.info("Current node:\n{}".format(str(curr_node.env)))
             edges.append(sim_edge)
         
         return curr_node, value, complete, edges
     
     def update_nodes(self, leaf, value, edges):
+        logging.info("Updating nodes . . .")
         curr_turn = leaf.env.turn
         
         for edge in edges:
