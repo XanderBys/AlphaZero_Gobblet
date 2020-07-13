@@ -36,9 +36,16 @@ while True:
     _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=False)
     memory.clear_short_term()
     
-    if iteration % 2 == 0:
+    filename = "memory/{}.p".format(str(iteration).zfill(4))
+    try:
+        print("Loading previously played games . . .")
+        new_memory = pickle.load(open(filename, 'rb'))
+        for sample in new_memory.long_term:
+            memory.add_sample(sample)
+            
+    except FileNotFoundError:
         print("Saving memory . . .")
-        pickle.dump(memory, open("memory/{}.p".format(str(iteration).zfill(4)), 'wb+'))
+        pickle.dump(memory, open(filename, 'wb+'))
     
     if len(memory.long_term) >= config.MEMORY_CAP:
         ### PART 2: RETRAINING ###

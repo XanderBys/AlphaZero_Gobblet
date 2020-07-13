@@ -3,7 +3,7 @@ import numpy as np
 from State import State
 from Piece import Piece
 import logging
-logging.basicConfig(filename="logs/Environment.log", level=logging.INFO)
+#logging.basicConfig(filename="logs/Environment.log", level=logging.INFO)
 class Environment:
     def __init__(self, NUM_ROWS, NUM_COLS, DEPTH):
         self.state = None

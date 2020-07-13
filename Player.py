@@ -5,7 +5,7 @@ from State import State
 import MCTS
 import config
 import logging
-logging.basicConfig(filename="logs/Player.log", level=logging.INFO)
+#logging.basicConfig(filename="logs/Player.log", level=logging.INFO)
 class Player:
     def __init__(self, name, env, num_sims, cpuct, model):
         self.GAMMA = 0.9

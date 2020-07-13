@@ -1,7 +1,7 @@
 import numpy as np
 import config
 import logging
-logging.basicConfig(filename="logs/MCTS.log", level=logging.INFO)
+#logging.basicConfig(filename="logs/MCTS.log", level=logging.INFO)
 class Node:
     def __init__(self, env):
         self.env = env

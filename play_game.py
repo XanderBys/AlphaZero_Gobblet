@@ -1,7 +1,7 @@
 from Environment import Environment
 import time
 import logging
-logging.basicConfig(filename="logs/play_game.log", level=logging.INFO)
+#logging.basicConfig(filename="logs/play_game.log", level=logging.INFO)
 def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=False):
     players = [player1, player2]
     scores = {player1.name:0, "drawn":0, player2.name:0}
@@ -20,10 +20,10 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             
             if turn_counter < tau_counter:
                 # act stochastically
-                action, pi, tree_val, nn_val, next_state, result, complete = players[env.turn].move(env, 1)
+                action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 1)
             else:
                 # act deterministically
-                action, pi, tree_val, nn_val, next_state, result, complete = players[env.turn].move(env, 0)
+                action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 0)
     
             if memory is not None:
                 memory.add_sample((env.copy(), pi))
