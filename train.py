@@ -28,58 +28,66 @@ best_agent = Player('best_agent', env, config.MCTS_SIMS, config.CPUCT, best_mode
 
 print("Initialization done. Starting main training loop.")
 iteration = 0
-while True:
-    iteration += 1
-    
-    ### PART 1: SELF PLAY ###
-    print("\n\n==================== SELF-PLAY ====================")
-    _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=False)
-    memory.clear_short_term()
-    
-    filename = "memory/{}.p".format(str(iteration).zfill(4))
-    try:
-        print("Loading previously played games . . .")
-        new_memory = pickle.load(open(filename, 'rb'))
-        for sample in new_memory.long_term:
-            memory.add_sample(sample)
+try:
+    while True:
+        iteration += 1
+
+        ### PART 1: SELF PLAY ###
+        print("\n\n==================== SELF-PLAY ====================")
+        
+        filename = "memory/{}.p".format(str(iteration).zfill(4))
+        try:
+            print("Loading previously played games . . .")
+            new_memory = pickle.load(open(filename, 'rb'))
+            for sample in new_memory.long_term:
+                memory.add_sample((sample['state'], sample['AV']), sample['value'])
+            memory.update_long_term()
+        except FileNotFoundError:
+            _, memory, _ = play_matches(best_agent, best_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=False)
+            memory.clear_short_term()
             
-    except FileNotFoundError:
-        print("Saving memory . . .")
-        pickle.dump(memory, open(filename, 'wb+'))
-    
-    if len(memory.long_term) >= config.MEMORY_CAP:
-        ### PART 2: RETRAINING ###
-        print("\n\n==================== RETRAINING ====================")
-        curr_agent.train(memory.long_term)
+            try:
+                print("Saving memory . . .")
+                pickle.dump(memory, open(filename, 'wb+'))
+            except OSError:
+                pass
             
-        ### PART 3: EVALUATION ###
-        print("\n\n==================== EVALUATION ====================")
-        scores, _, points = play_matches(best_agent, curr_agent, config.EVAL_EPISODES, 0, None)
-        
-        if scores['curr_agent'] > scores['best_agent'] * config.SCORING_THRESHOLD:
-            best_player_version += 1
-            best_model.nn.set_weights(curr_model.nn.get_weights())
-            print("Saving the new best model . . .")
-            best_model.save(env.name, best_player_version)
+        if len(memory.long_term) >= config.MEMORY_CAP:
+            ### PART 2: RETRAINING ###
+            print("\n\n==================== RETRAINING ====================")
+            curr_agent.train(memory.long_term)
+                
+            ### PART 3: EVALUATION ###
+            print("\n\n==================== EVALUATION ====================")
+            scores, _, points = play_matches(best_agent, curr_agent, config.EVAL_EPISODES, 0, None)
             
-    print("""
-          \n\n========================================
-          \n{} iterations completed
-          \n========================================\n\n
-          """.format(iteration))
+            if scores['curr_agent'] > scores['best_agent'] * config.SCORING_THRESHOLD:
+                best_player_version += 1
+                best_model.nn.set_weights(curr_model.nn.get_weights())
+                print("Saving the new best model . . .")
+                best_model.save(env.name, best_player_version)
+        
+        else:
+            print("Not enough memory samples to retrain ({}/{})".format(len(memory.long_term), config.MEMORY_CAP))
+        print("""
+              \n\n========================================
+              \n{} iterations completed
+              \n========================================\n\n
+              """.format(iteration))
     
-    try:
-        print("Program continuing in 10 seconds . . .")
-        time.sleep(10)
-    except KeyboardInterrupt:
-        print("Saving data and exiting training loop . . .")
-        
-        folder = "data/{}".format(time.strftime("%m_%d_%y_%H_%M_%S"))
-        os.mkdir(folder)
-        pickle.dump(curr_agent.train_loss, open("{}/train_overall_loss.p".format(folder), 'wb'))
-        pickle.dump(curr_agent.train_value_loss, open("{}/train_value_loss.p".format(folder), 'wb'))
-        pickle.dump(curr_agent.train_policy_loss, open("{}/train_policy_loss.p".format(folder), 'wb'))
-        
-        curr_model.save('', "final")
-        
-        break
+except KeyboardInterrupt:
+    print("Saving data and exiting training loop . . .")
+
+except Exception as err:
+    print("The following error occurred at {}:\n{}".format(time.strftime("%H:%M:%S"), str(err)))
+
+finally:
+    folder = "data/{}".format(time.strftime("%m_%d_%y_%H_%M_%S"))
+    os.mkdir(folder)
+    pickle.dump(curr_agent.train_loss, open("{}/train_overall_loss.p".format(folder), 'wb'))
+    pickle.dump(curr_agent.train_value_loss, open("{}/train_value_loss.p".format(folder), 'wb'))
+    pickle.dump(curr_agent.train_policy_loss, open("{}/train_policy_loss.p".format(folder), 'wb'))
+    
+    curr_model.save('', "final")
+    
+    assert 0==1

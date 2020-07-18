@@ -6,9 +6,9 @@ class Memory:
         self.long_term = deque(maxlen=self.max_memory)
         self.short_term = deque(maxlen=self.max_memory)
 
-    def add_sample(self, sample):
+    def add_sample(self, sample, value=None):
         state, AVs = sample
-        self.short_term.append({'board': state.state, 'state': state, 'id': state.id, 'AV': AVs, 'turn': state.turn})
+        self.short_term.append({'board': state.state, 'state': state, 'id': state.id, 'AV': AVs, 'turn': state.turn, 'value':value})
         
     def update_long_term(self):
         for i in self.short_term:

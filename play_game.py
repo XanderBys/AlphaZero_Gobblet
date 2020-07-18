@@ -43,18 +43,18 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
                     memory.update_long_term()
                 
                 if result == 1:
-                    scores[players[env.turn].name] += 1
-                    points[players[env.turn].name].append(1)
-                    points[players[-1*env.turn].name].append(-1)
+                    scores[players[env.pieces_idx].name] += 1
+                    points[players[env.pieces_idx].name].append(1)
+                    points[players[-1*env.pieces_idx].name].append(-1)
                     
                 elif result == -1:
-                    scores[players[-1*env.turn].name] += 1
-                    points[players[-1*env.turn].name].append(1)
-                    points[players[env.turn].name].append(-1)
+                    scores[players[-1*env.pieces_idx].name] += 1
+                    points[players[-1*env.pieces_idx].name].append(1)
+                    points[players[env.pieces_idx].name].append(-1)
                 else:
                     scores['drawn'] += 1
-                    points[players[env.turn].name].append(0)
-                    points[players[-1*env.turn].name].append(0)
+                    points[players[env.pieces_idx].name].append(0)
+                    points[players[-1*env.pieces_idx].name].append(0)
                 
                 # switch who starts the game
                 players = players[::-1]
