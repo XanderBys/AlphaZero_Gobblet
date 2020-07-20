@@ -130,9 +130,10 @@ class Player:
             
             logging.info("Training neural network . . . ")
             hist = self.model.train_batch(states.reshape(len(batch), 2, 64, 4), targets, epochs=config.EPOCHS).history
-            self.train_loss.append(round(hist['loss'][config.EPOCHS-1],4))
-            self.train_value_loss.append(round(hist['value_head_loss'][config.EPOCHS-1],4))
-            self.train_policy_loss.append(round(hist['policy_head_loss'][config.EPOCHS-1],4))
+
+            self.train_loss.extend(map(lambda x: round(x,4), hist['loss']))
+            self.train_value_loss.extend(map(lambda x: round(x,4), hist['value_head_loss']))
+            self.train_policy_loss.extend(map(lambda x: round(x,4), hist['policy_head_loss']))
         
     def build_MCTS(self, state):
         root = MCTS.Node(state.copy())

@@ -2,7 +2,7 @@ from Environment import Environment
 import time
 import logging
 #logging.basicConfig(filename="logs/play_game.log", level=logging.INFO)
-def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=False):
+def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=False, single_match=False):
     players = [player1, player2]
     scores = {player1.name:0, "drawn":0, player2.name:0}
     points = {player1.name:[], player2.name:[]}
@@ -27,7 +27,7 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
     
             if memory is not None:
                 memory.add_sample((env.copy(), pi))
-            logging.info("Move {} chosen".format(turn_counter))
+            #logging.info("Move {} chosen".format(turn_counter))
             env = next_state
             if verbose:
                 print(env)
@@ -58,11 +58,15 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
                 
                 # switch who starts the game
                 players = players[::-1]
-                logging.info("Total time: {}\n Time on simulations: {} ({}%)".format(time.time()-t, player1.time_sims, (player1.time_sims/(time.time()-t))*100))
+                #logging.info("Total time: {}\n Time on simulations: {} ({}%)".format(time.time()-t, player1.time_sims, (player1.time_sims/(time.time()-t))*100))
                 break
-        print("{} out of {} games complete".format(i+1, EPISODES))
-        logging.info("{} out of {} games complete".format(i+1, EPISODES))
+        if not single_match:
+            print("{} out of {} games complete".format(i+1, EPISODES))
+            logging.info("{} out of {} games complete".format(i+1, EPISODES))
     
-    if memory is None:
-        print("Final scores: {}".format(scores))
-    return scores, memory, points
+    if not single_match:
+        if memory is None:
+            print("Final scores: {}".format(scores))
+        return scores, memory, points
+    else:
+        return scores[player1.name]
