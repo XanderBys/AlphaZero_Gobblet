@@ -1,8 +1,8 @@
-from keras.models import Model as keras_model
-from keras.models import load_model
-from keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, LeakyReLU, add
-from keras import regularizers
-from keras.optimizers import SGD
+from tensorflow.keras.models import Model as keras_model
+from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, LeakyReLU, add
+from tensorflow.keras import regularizers
+from tensorflow.keras.optimizers import SGD
 import numpy as np
 from loss import softmax_crossentropy
 import config
@@ -113,7 +113,7 @@ class Model:
         self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},
                         optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, 'policy_head':0.5})
     def plot(self):
-        from keras.utils import plot_model
+        from tensorflow.keras.utils import plot_model
         plot_model(self.nn, to_file="/home/pi/programs/Gobblet_AlphaZero/model_vizualization.png", show_shapes=True, show_layer_names=True)
     
 if __name__ == '__main__':
