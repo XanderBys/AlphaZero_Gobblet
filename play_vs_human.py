@@ -12,4 +12,4 @@ model.load(filepath)
 print("Model loaded and compiled")
 agent = Player('agent', env, 150, config.CPUCT, model)
 
-play_matches(human, agent, 1, 0, verbose=True)
+play_matches(human, agent, 1, 0, verbose=False)

@@ -129,8 +129,9 @@ class Player:
                        'policy_head': np.array([sample['AV'] for sample in batch]).reshape(len(batch), 12*16)}
             
             logging.info("Training neural network . . . ")
-            hist = self.model.train_batch(states.reshape(len(batch), 2, 64, 4), targets, epochs=config.EPOCHS).history
+            hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
 
+            print(hist)
             self.train_loss.extend(map(lambda x: round(x,4), hist['loss']))
             self.train_value_loss.extend(map(lambda x: round(x,4), hist['value_head_loss']))
             self.train_policy_loss.extend(map(lambda x: round(x,4), hist['policy_head_loss']))

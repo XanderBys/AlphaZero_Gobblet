@@ -49,9 +49,6 @@ try:
 except KeyboardInterrupt:
     pass
 
-except Exception as err:
-    print("The following error occurred at {}:\n{}".format(time.strftime("%H:%M:%S"), str(err)))
-
 finally:
     print("Saving data and exiting training loop . . .")
     folder = "data/{}".format(time.strftime("%m-%d-%y_%H:%M:%S"))

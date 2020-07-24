@@ -9,6 +9,7 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
     t = time.time()
     for i in range(EPISODES):
         env =  Environment(4, 4, 4)
+        turn = int(env.turn)
         
         player1.mcts = None
         player2.mcts = None
@@ -24,11 +25,13 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             else:
                 # act deterministically
                 action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 0)
-    
+            
             if memory is not None:
                 memory.add_sample((env.copy(), pi))
             #logging.info("Move {} chosen".format(turn_counter))
             env = next_state
+            turn *= -1
+            env.turn = int(turn)
             if verbose:
                 print(env)
                 

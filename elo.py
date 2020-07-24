@@ -10,15 +10,16 @@ def predict_match(ratings):
 
 env = Environment(4, 4, 4)
 INIT_RATING = 1500.
-versions = range(1, 4)
+mods = [27, 1]
+versions = range(1, len(mods)+1)
 n = len(versions) # number of models in tournament
 K = 32
 
-print("Loading models . . .")
 models = np.array(list(map(lambda x: Model((2, 64, 4), 12*16, config.HIDDEN_LAYERS, config.REG_CONST, config.LEARNING_RATE), versions)))
 # load the weights
-for idx, model in zip(versions, models):
+for idx, model in zip(mods, models):
     filename = "models/version{}.h5".format(idx)
+    print("Loading model with filepath ", filename)
     model.load(filename)
 
 agents = np.array(list(map(lambda x: Player(x, env, config.MCTS_SIMS, config.CPUCT, models[x-1]), versions)))
@@ -42,7 +43,7 @@ for i in versions:
             counter += 1
 
 error = np.full(1, 100)
-while np.sum(error) / len(matches) > 0.1:
+while abs(np.sum(error) / len(matches)) > 0.01:
     print("Predicting matches . . .")
     predictions = np.fromiter(map(predict_match, ratings[matches]), dtype=np.float32)
     
@@ -57,3 +58,7 @@ while np.sum(error) / len(matches) > 0.1:
     print(predictions, outcomes)
     print(ratings)
     print(np.sum(error)/len(matches))
+    
+    # switch the matches so that each player can go first
+    matches = matches[:, ::-1]
+    
