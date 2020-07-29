@@ -131,7 +131,10 @@ class Player:
             logging.info("Training neural network . . . ")
             hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
 
+<<<<<<< HEAD
             print(hist)
+=======
+>>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
             self.train_loss.extend(map(lambda x: round(x,4), hist['loss']))
             self.train_value_loss.extend(map(lambda x: round(x,4), hist['value_head_loss']))
             self.train_policy_loss.extend(map(lambda x: round(x,4), hist['policy_head_loss']))

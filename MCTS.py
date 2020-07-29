@@ -57,11 +57,20 @@ class MCTS:
             
             nb = sum(map(lambda edge: edge[1].data['N'], curr_node.edges))
             
+<<<<<<< HEAD
+=======
+            idx = np.random.choice(range(len(curr_node.edges)))
+            (sim_action, sim_edge) = curr_node.edges[idx]
+>>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
             for idx, (action, edge) in enumerate(curr_node.edges):
                 # choose the leaf that is most confident according to the formula
                 U = self.cpuct * ((1-epsilon)*edge.data['P'] + epsilon*nu[idx]) * np.sqrt(nb) / (1+edge.data['N'])
                 Q = edge.data['Q']
+<<<<<<< HEAD
                 if Q + U > maxQU:
+=======
+                if Q + U > maxQU and not np.isnan(Q+U):
+>>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
                     maxQU = Q + U
                     sim_action = action
                     sim_edge = edge
