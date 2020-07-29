@@ -77,8 +77,8 @@ class Environment:
         
         if self.id in self.duplicate_states:
             self.draw_flag=True
-        elif self.id in self.prev_states:
-            self.duplicate_duplicate_states.add(self.id)
+        elif self.id in self.moves_made:
+            self.duplicate_states.add(self.id)
         else:
             self.moves_made.add(self.id)
         result = self.get_result(self.state)
