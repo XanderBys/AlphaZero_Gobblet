@@ -4,6 +4,7 @@ from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormaliz
 from tensorflow.keras import regularizers
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import TensorBoard
+from tensorflow import summary
 import numpy as np
 from loss import softmax_crossentropy
 import config
@@ -36,7 +37,7 @@ class Model:
         
         self.nn = keras_model(inputs=[inp], outputs=[value, policy])
         self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},
-                        optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, 'policy_head':0.5})
+                        optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, 'policy_head':0.5}, metrics='accuracy')
     
     def value_head(self, x):
         x = Conv2D(filters=1, kernel_size=(1,1), padding='same',
@@ -103,9 +104,15 @@ class Model:
      
     def train_batch(self, x_batch, y_batch, epochs=1, use_fit=True):
         if use_fit:
-            self.training_cycles += 1
-            tensorboard_callback = TensorBoard(log_dir=self.log_dir, write_graph=False, update_freq='batch')
-            return self.nn.fit(x_batch, y_batch, verbose=0, epochs=epochs, callbacks=[tensorboard_callback], batch_size=32)
+            summary_writer = summary.create_file_writer(self.log_dir)
+            results = self.nn.fit(x_batch, y_batch, verbose=0, epochs=epochs, batch_size=32)
+            hist = results.history
+            with summary_writer.as_default():
+                for key in hist.keys():
+                    for i in range(epochs):
+                        self.training_cycles += 1
+                        summary.scalar(key, hist[key][i], step=self.training_cycles)
+            return results
         else:
             return self.nn.train_on_batch(x_batch, y_batch)
     
@@ -113,9 +120,10 @@ class Model:
         self.nn.save("models/version{}.h5".format(version))
     
     def load(self, filepath):
-        self.nn = load_model(filepath, compile=False)
-        self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},
-                        optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, 'policy_head':0.5})
+        self.nn = load_model(filepath, compile=True)
+        #self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},
+         #               optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, #'policy_head':0.5}, metrics='accuracy')
+         
     def plot(self):
         from tensorflow.keras.utils import plot_model
         plot_model(self.nn, to_file="/home/pi/programs/Gobblet_AlphaZero/model_vizualization.png", show_shapes=True, show_layer_names=True)
