@@ -74,17 +74,14 @@ class Environment:
         logging.info("Updating lower layers . . .")
         if prev_occupant != 0:
             self.update_lower_layers((piece, location), prev_occupant)
-<<<<<<< HEAD
-        
-        if self.id in self.duplicate_states:
-            self.draw_flag=True
-        elif self.id in self.moves_made:
-            self.duplicate_states.add(self.id)
-        else:
-            self.moves_made.add(self.id)
-=======
-            
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
+#        
+#        if self.id in self.duplicate_states:
+#            self.draw_flag=True
+#        elif self.id in self.moves_made:
+#            self.duplicate_states.add(self.id)
+#        else:
+#            self.moves_made.add(self.id)
+
         result = self.get_result(self.state)
         
         # update the turn tracker
@@ -167,11 +164,7 @@ class Environment:
         # check for draws
         # that is, if three identical moves have been made, it's a draw
         if self.draw_flag or len(self.get_legal_moves_idxs())==0 or len(self.prev_states) > 50: 
-<<<<<<< HEAD
-            print("DRAW BY {}".format("REPETITION" if self.draw_flag else "NO MOVES"))
-=======
             #print("DRAW BY {}".format("REPETITION" if self.draw_flag else "NO MOVES"))
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
             return 0
             
         return None

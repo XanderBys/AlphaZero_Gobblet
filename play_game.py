@@ -9,22 +9,16 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
     t = time.time()
     for i in range(EPISODES):
         env =  Environment(4, 4, 4)
-<<<<<<< HEAD
         turn = int(env.turn)
-=======
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
         
         player1.mcts = None
         player2.mcts = None
         
         turn_counter = 0
         
-<<<<<<< HEAD
-=======
         states_seen = set()
         duplicate_states = set()
 
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
         while True:
             turn_counter += 1
             
@@ -34,7 +28,6 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             else:
                 # act deterministically
                 action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 0)
-<<<<<<< HEAD
             
             if memory is not None:
                 memory.add_sample((env.copy(), pi))
@@ -42,12 +35,7 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             env = next_state
             turn *= -1
             env.turn = int(turn)
-=======
-    
-            if memory is not None:
-                memory.add_sample((env.copy(), pi))
-            #logging.info("Move {} chosen".format(turn_counter))
-
+            
             env = next_state
             if env.id in states_seen:
               duplicate_states.add(env.id)
@@ -55,7 +43,6 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
               complete = True
               result = 0
 
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
             if verbose:
                 print(env)
                 

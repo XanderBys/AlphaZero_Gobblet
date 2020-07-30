@@ -15,22 +15,24 @@ memory = Memory()
 
 # create NN
 print("Creating neural network . . .")
-curr_model = Model((2, 64, 4), 12*16, config.HIDDEN_LAYERS, config.REG_CONST, config.LEARNING_RATE)
+curr_model = Model(config.INPUT_SHAPE, 12*16, config.HIDDEN_LAYERS, config.REG_CONST, config.LEARNING_RATE)
 iteration = 0
 try:
     iteration = int(open('initialization.txt', 'r').read())
     filename = "models/version{}.h5".format(iteration)
     print("Loading model with filename {} . . .".format(filename))
     curr_model.load(filename)
-except (FileNotFoundError, OSError):
+except (FileNotFoundError, OSError, ValueError):
     pass
 
 print("Initializing agent . . .")
 curr_agent = Player('curr_agent', env, config.MCTS_SIMS, config.CPUCT, curr_model)
 
 print("Initialization done. Starting main training loop.")
-
+import pdb;pdb.set_trace()
 try:
+    LOG_DIR = "data/{}/".format(time.strftime("%m-%d-%y_%H:%M:%S"))
+    curr_model.log_dir = LOG_DIR
     while True:
         iteration += 1
 
@@ -48,21 +50,3 @@ try:
         
 except KeyboardInterrupt:
     pass
-
-<<<<<<< HEAD
-=======
-except Exception as err:
-    print("The following error occurred at {}:\n{}".format(time.strftime("%H:%M:%S"), str(err)))
-
->>>>>>> c04eca8fe848170ed7fd1c6d821366c36cc40f26
-finally:
-    print("Saving data and exiting training loop . . .")
-    folder = "data/{}".format(time.strftime("%m-%d-%y_%H:%M:%S"))
-    os.mkdir(folder)
-    pickle.dump(curr_agent.train_loss, open("{}/train_overall_loss.p".format(folder), 'wb'))
-    pickle.dump(curr_agent.train_value_loss, open("{}/train_value_loss.p".format(folder), 'wb'))
-    pickle.dump(curr_agent.train_policy_loss, open("{}/train_policy_loss.p".format(folder), 'wb'))
-    
-    fout = open('initialization.txt', 'w+')
-    fout.write(str(iteration))
-    fout.close()
