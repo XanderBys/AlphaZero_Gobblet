@@ -122,15 +122,21 @@ class Model:
         else:
             return self.nn.train_on_batch(x_batch, y_batch)
     
+    def write_data(self, name, data, steps):
+        summary_writer = summary.create_file_writer(self.log_dir)
+        with summary_writer.as_default():
+            for datum in data:
+                summary.scalar(name, datum, step=steps)
+                        
     def save(self, game, version):
         self.nn.save("models/version{}.h5".format(version))
     
-    def loadf(self, filepath):
+    def load(self, filepath):
         self.nn = load_model(filepath, compile=False)
         self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},
                         optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), metrics=['accuracy'],
                         loss_weights={'value_head':0.5, 'policy_head':0.5})
-    def load(self, filename):
+    def loadf(self, filepath):
 
         self.nn = load_model(filepath, compile=True)
         #self.nn.compile(loss={'value_head': 'mean_squared_error', 'policy_head': softmax_crossentropy},

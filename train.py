@@ -22,14 +22,14 @@ try:
     filename = "models/version{}.h5".format(iteration)
     print("Loading model with filename {} . . .".format(filename))
     curr_model.load(filename)
-except (FileNotFoundError, OSError, ValueError):
+except:
     pass
 
 print("Initializing agent . . .")
 curr_agent = Player('curr_agent', env, config.MCTS_SIMS, config.CPUCT, curr_model)
 
 print("Initialization done. Starting main training loop.")
-import pdb;pdb.set_trace()
+#import pdb;pdb.set_trace()
 try:
     LOG_DIR = "data/{}/".format(time.strftime("%m-%d-%y_%H:%M:%S"))
     curr_model.log_dir = LOG_DIR
@@ -41,7 +41,7 @@ try:
 
         _, memory, _ = play_matches(curr_agent, curr_agent, config.EPISODES, config.TAU_COUNTER, memory, verbose=False)
         memory.clear_short_term()
-            
+        
         ### PART 2: RETRAINING ###
         print("\n\n==================== RETRAINING ====================")
         curr_agent.train(memory.long_term)

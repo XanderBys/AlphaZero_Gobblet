@@ -16,7 +16,7 @@ class Node:
 
 class Edge:
     def __init__(self, in_node, out_node, prior, action):
-        self.id = "{}|{}".format(in_node.env.id, out_node.env.id)
+        #self.id = in_node.env.id+'|'+out_node.env.id
         self.in_node = in_node
         self.out_node = out_node
         self.turn = in_node.env.turn
@@ -24,7 +24,7 @@ class Edge:
         # N: number of times the action from the state has been chosen
         # W: total value of next state
         # Q: mean value of next state
-        # P: probability of selecting this action
+        # P: probability of selecting this edge
         self.data = {'N':0, 'W':0, 'Q':0, 'P': prior}
         logging.info("Edge created")
 

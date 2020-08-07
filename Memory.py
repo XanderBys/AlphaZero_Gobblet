@@ -18,3 +18,6 @@ class Memory:
         
     def clear_short_term(self):
         self.short_term = deque(maxlen=self.max_memory)
+    
+    def __len__(self):
+        return len(self.long_term)

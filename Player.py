@@ -1,11 +1,28 @@
 import random, time
 import pickle
+#import numba
 import numpy as np
 from State import State
 import MCTS
 import config
 import logging
 #logging.basicConfig(filename="logs/Player.log", level=logging.INFO)
+#@numba.jit
+#def get_probs(values, logits, legal_moves):
+#        values = values[0]
+#        logits = logits[0].reshape(12, 16)
+#        
+#        # make sure illegal moves aren't chosen
+#        mask = np.ones(logits.shape, dtype=bool)
+#        mask[legal_moves[0], legal_moves[1]] = False
+#        logits[mask] = -100
+#        
+#        # put probabilities through softmax
+#        exps = np.exp(logits)
+#        probs = exps / np.sum(exps)
+#        
+#        return probs, values, logits
+
 class Player:
     def __init__(self, name, env, num_sims, cpuct, model):
         self.GAMMA = 0.9
@@ -17,11 +34,14 @@ class Player:
         self.cpuct = cpuct
         self.model = model
         self.time_sims = 0
+        self.total_time = 0
+        self.is_random = False
         
         self.train_loss = []
         self.train_value_loss = []
         self.train_policy_loss = []
-    
+        self.nn_MCTS_value_diff = []
+        
     def run_simulation(self):
         leaf, value, done, edges = self.mcts.go_to_leaf()
         logging.info("Navigated to leaf")
@@ -30,46 +50,27 @@ class Player:
         self.mcts.update_nodes(leaf, value, edges)
         logging.info("Updated nodes")
         
-    def evaluate_state(self, state, value, complete, edges):
+    def evaluate_state(self, state, values, complete, edges):
         if not complete:
             logging.info("Predicting state . . .")
-            value, probs, legal_moves = self.predict_state(state.env)
-            
+            t2=time.time()
+            probs, values, logits, legal_moves = self.predict_state(state)
+            self.time_sims+=(time.time()-t2)
             logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
-                if new_state.id not in set(self.mcts.tree):
+                if new_state.id not in self.mcts.tree.keys():
                     node = MCTS.Node(new_state.copy())
                     self.mcts.add_node(node)
                 else:
                     node = self.mcts.tree[new_state.id]
                 new_edge = MCTS.Edge(state, node, probs[action[0], action[1]], action)
                 state.edges.append((action, new_edge))
-        
-        return (value, edges)
-    
-    def predict_state(self, state):
-        values, logits = self.model.predict_one(state.binary)
-        values = values[0]
-        logits = logits[0].reshape(12, 16)
-        
-        # make sure illegal moves aren't chosen
-        moves = state.get_legal_moves_idxs()
-        legal_moves = np.array(moves).T
-        if len(legal_moves)==0:
-            print(state)
-        mask = np.ones(logits.shape, dtype=bool)
-        mask[legal_moves[0], legal_moves[1]] = False
-        logits[mask] = -100
-        
-        # put probabilities through softmax
-        exps = np.exp(logits)
-        probs = exps / np.sum(exps)
-        
-        return (values, probs, legal_moves)
+        return (values, edges)
     
     def move(self, state, tau):
+        t=time.time()
         if self.mcts is None or state.id not in self.mcts.tree:
             self.build_MCTS(state)
         else:
@@ -77,6 +78,7 @@ class Player:
         
         for sim in range(self.num_sims):
             self.run_simulation()
+            
         logging.info("Simulations complete")
         pi, vals = self.get_action_vals(1)
         action, value = self.choose_action(pi, vals, tau)
@@ -90,8 +92,8 @@ class Player:
             print(tree_state)
             raise err
         
-        predicted_value = -1*self.predict_state(next_state)
-        
+        predicted_value = None
+        self.total_time += (time.time()-t)
         return (action, pi, value, predicted_value, next_state, result, complete)
     
     def choose_action(self, pi, values, tau):
@@ -118,9 +120,9 @@ class Player:
         pi /= np.sum(pi)
         return pi, vals
     
-    def train(self, memory):
+    def train(self, memory, single_loop=False):
         # train the model based on the reward
-        logging.info("Beginning training . . . ")
+        num_loops = config.TRAINING_LOOPS if not single_loop else 1
         for i in range(config.TRAINING_LOOPS):
             logging.info("Formatting data . . .")
             batch = random.sample(memory, min(config.BATCH_SIZE, len(memory)))
@@ -130,17 +132,39 @@ class Player:
             
             logging.info("Training neural network . . . ")
             hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
-
-            self.train_loss.extend(map(lambda x: round(x,4), hist['loss']))
-            self.train_value_loss.extend(map(lambda x: round(x,4), hist['value_head_loss']))
-            self.train_policy_loss.extend(map(lambda x: round(x,4), hist['policy_head_loss']))
+    
+    def predict_state(self, state):
+        moves = state.env.get_legal_moves_idxs()
+        legal_moves = np.array(moves).T
         
+        values, logits = self.model.predict_one(state.env.binary)
+        
+        values = values[0]
+        logits = logits[0].reshape(12, 16)
+        
+        # make sure illegal moves aren't chosen
+        mask = np.ones(logits.shape, dtype=bool)
+        mask[legal_moves[0], legal_moves[1]] = False
+        logits[mask] = -100
+        
+        # put probabilities through softmax
+        exps = np.exp(logits)
+        probs = exps / np.sum(exps)
+        
+        return probs, values, logits, legal_moves
+    
     def build_MCTS(self, state):
         root = MCTS.Node(state.copy())
         self.mcts = MCTS.MCTS(root, self.cpuct)
         
     def change_MCTS_root(self, new_root):
         self.mcts.root = self.mcts.tree[new_root.id]
+    
+    def take_random_action(self, env):
+        action = random.choice(env.get_legal_moves_idxs())
+        next_state, result, complete = env.update(action)
+        env.undo_move()
+        return (action, 0, 0, 0, next_state, result, complete)
     
     def save_policy(self, prefix):
         fout = open("{}policy_{}".format(prefix, self.name), 'wb')

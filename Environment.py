@@ -122,8 +122,11 @@ class Environment:
         piece, location = action
         layer = self.state.lower_layers[i]
         dest = layer[location]
-        if dest != 0:
-            self.update_lower_layers(action, dest, i+1)
+        if dest != 0 and i < 2:
+            try:
+                self.update_lower_layers(action, dest, i+1)
+            except IndexError:
+                print("IndexError in update_lower_layers")
         dest = self.turn * piece.size
         self.state.lower_layers[i, location[0], location[1]] = prev_occupant
         exit_flag = False
