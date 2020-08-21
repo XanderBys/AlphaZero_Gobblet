@@ -60,7 +60,7 @@ class MCTS:
             idx = np.random.choice(range(len(curr_node.edges)))
             (sim_action, sim_edge) = curr_node.edges[idx]
             for idx, (action, edge) in enumerate(curr_node.edges):
-                # choose the leaf that is most confident according to the formula
+                # U implements exploration/exploitation tradeoff
                 U = self.cpuct * ((1-epsilon)*edge.data['P'] + epsilon*nu[idx]) * np.sqrt(nb) / (1+edge.data['N'])
                 Q = edge.data['Q']
                 

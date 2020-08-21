@@ -10,6 +10,8 @@ model = Model(config.INPUT_SHAPE, 12*16, config.HIDDEN_LAYERS, config.REG_CONST,
 filepath = input("Type the path to the model: ")
 model.load(filepath)
 print("Model loaded and compiled")
-agent = Player('agent', env, 150, config.CPUCT, model)
+agent = Player('agent', env, 250, 1, model)
 
-play_matches(human, agent, 1, 0, verbose=True)
+from Memory import Memory
+mem = Memory()
+play_matches(human, agent, 1, 0, memory=mem, verbose=True)

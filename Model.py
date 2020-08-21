@@ -40,11 +40,7 @@ class Model:
                         loss_weights={'value_head':0.5, 'policy_head':0.5})
     
     def value_head(self, x):
-        x = Conv2D(filters=1, kernel_size=(1,1), data_format="channels_first", padding='same',
-                  optimizer=SGD(lr=self.learning_rate, momentum=config.MOMENTUM), loss_weights={'value_head':0.5, 'policy_head':0.5}, metrics='accuracy')
-
-    def value_head(self, x):
-        x = Conv2D(filters=1, kernel_size=(1,1), padding='same',
+        x = Conv2D(filters=16, kernel_size=(1,1), padding='same',
                    use_bias=False, activation='linear', kernel_regularizer=regularizers.l2(self.reg_const))(x)
         x = BatchNormalization(axis=1)(x)
         x = LeakyReLU()(x)
@@ -59,7 +55,7 @@ class Model:
         return (x)
     
     def policy_head(self, x):
-        x = Conv2D(filters=2, kernel_size=(1,1), padding='same',
+        x = Conv2D(filters=32, kernel_size=(1,1), padding='same',
                    use_bias=False, activation='linear', kernel_regularizer=regularizers.l2(self.reg_const))(x)
         x = BatchNormalization(axis=1)(x)
         x = LeakyReLU()(x)
@@ -100,7 +96,8 @@ class Model:
             
     def predict_one(self, board):
         inp = board.reshape((1, config.INPUT_SHAPE[0], config.INPUT_SHAPE[1], config.INPUT_SHAPE[2]))
-        return self.nn.predict(inp)
+        out = self.nn.predict(inp)
+        return out
    
     def predict_batch(self, boards):
         return self.nn.predict(boards)

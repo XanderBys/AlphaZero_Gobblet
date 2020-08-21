@@ -1,6 +1,5 @@
 import copy
 import numpy as np
-from numba import jit
 from State import State
 from Piece import Piece
 import logging
@@ -140,7 +139,7 @@ class Environment:
                         p.stack_number += 1
                         exit_flag = True
                         break
-    @jit       
+            
     def get_result(self, state):
         # returns None if the game isn't over, 1 if white wins and -1 if black wins
         
@@ -167,7 +166,7 @@ class Environment:
         
         # check for draws
         # that is, if three identical moves have been made, it's a draw
-        if self.draw_flag or len(self.prev_states) > 50: 
+        if self.draw_flag or len(self.get_legal_moves_idxs())==0 or len(self.prev_states) > 50: 
             #print("DRAW BY {}".format("REPETITION" if self.draw_flag else "NO MOVES"))
             return 0
             

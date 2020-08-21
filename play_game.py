@@ -5,8 +5,10 @@ import config
 #logging.basicConfig(filename="logs/play_game.log", level=logging.INFO)
 def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=False, single_match=False):
     players = [player1, player2]
+
     scores = {player1.name:0, "drawn":0, player2.name:0}
     points = {player1.name:[], player2.name:[]}
+    
     t = time.time()
     for i in range(EPISODES):
         env =  Environment(4, 4, 4)
@@ -16,9 +18,6 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
         player2.mcts = None
         
         turn_counter = 0
-        
-        states_seen = set()
-        duplicate_states = set()
         t=time.time()
         while True:
             turn_counter += 1
@@ -32,17 +31,14 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
                 # act deterministically
                 action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 0)
             
-            if memory is not None:
-                memory.add_sample((env.copy(), pi))
             #logging.info("Move {} chosen".format(turn_counter))
             env = next_state
             turn *= -1
             env.turn = int(turn)
-            
-            env = next_state
-            if env.id in states_seen:
-              duplicate_states.add(env.id)
-            elif env.id in duplicate_states or turn_counter > config.MAX_GAME_LENGTH:
+            if memory is not None:
+                memory.add_sample((env.copy(), pi))
+                
+            if turn_counter >= config.MAX_GAME_LENGTH:
               complete = True
               result = 0
 
@@ -52,26 +48,34 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             if complete:
                 # the game is over here
                 if memory is not None:
+                    if result == 0:
+                        fout = open("log.txt", "a+")
                     for sample in memory.short_term:
                         if sample['turn'] == env.turn:
                             sample['value'] = result
                         else:
                             sample['value'] = -1*result
+                        if result == 0:
+                            fout.write(str(sample['state'])+'\n')
+#                        print(sample['state'])
+#                        print("Value: " + str(sample['value'])+"\n\n")
                     memory.update_long_term()
-                
+                    if result == 0:
+                        fout.close()
+                    
                 if result == 1:
                     scores[players[env.pieces_idx].name] += 1
                     points[players[env.pieces_idx].name].append(1)
                     points[players[env.pieces_idx-1].name].append(-1)
                     
                 elif result == -1:
-                    scores[players[-1*env.pieces_idx].name] += 1
-                    points[players[-1*env.pieces_idx].name].append(1)
+                    scores[players[int(not env.pieces_idx)].name] += 1
+                    points[players[int(not env.pieces_idx)].name].append(1)
                     points[players[env.pieces_idx].name].append(-1)
                 else:
                     scores['drawn'] += 1
                     points[players[env.pieces_idx].name].append(0)
-                    points[players[-1*env.pieces_idx].name].append(0)
+                    points[players[int(not env.pieces_idx)].name].append(0)
                 
                 # switch who starts the game
                 players = players[::-1]
@@ -80,7 +84,7 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
 #                plyaer2.total_time = 0
                 break
         if not single_match:
-            print("{} out of {} games complete in {} moves".format(i+1, EPISODES, turn_counter))
+            print("{} out of {} games complete in {} moves and {} seconds".format(i+1, EPISODES, turn_counter, time.time()-t))
             logging.info("{} out of {} games complete in {} moves".format(i+1, EPISODES, turn_counter))
     
     if not single_match:

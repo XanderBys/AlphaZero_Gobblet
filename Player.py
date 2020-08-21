@@ -33,29 +33,37 @@ class Player:
         self.num_sims = num_sims
         self.cpuct = cpuct
         self.model = model
-        self.time_sims = 0
+        self.times = {}
         self.total_time = 0
         self.is_random = False
+        
+        self.positions_cache = {}
         
         self.train_loss = []
         self.train_value_loss = []
         self.train_policy_loss = []
         self.nn_MCTS_value_diff = []
-        
+    
     def run_simulation(self):
+        self.times['start'] = time.time()
         leaf, value, done, edges = self.mcts.go_to_leaf()
+        #self.times['leafing'] += (time.time()-self.times['start'])
         logging.info("Navigated to leaf")
+        self.times['start'] = time.time()
         value, edges = self.evaluate_state(leaf, value, done, edges)
+        #self.times['evaluation'] += (time.time()-self.times['start'])
         logging.info("Evaluated state")
+        self.times['start'] = time.time()
         self.mcts.update_nodes(leaf, value, edges)
+        #self.times['update'] += (time.time()-self.times['start'])
         logging.info("Updated nodes")
         
     def evaluate_state(self, state, values, complete, edges):
         if not complete:
             logging.info("Predicting state . . .")
-            t2=time.time()
-            probs, values, logits, legal_moves = self.predict_state(state)
-            self.time_sims+=(time.time()-t2)
+            #t2=time.time()
+            probs, values, legal_moves = self.predict_state(state)
+            #self.time_sims+=(time.time()-t2)
             logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
@@ -70,7 +78,6 @@ class Player:
         return (values, edges)
     
     def move(self, state, tau):
-        t=time.time()
         if self.mcts is None or state.id not in self.mcts.tree:
             self.build_MCTS(state)
         else:
@@ -93,7 +100,7 @@ class Player:
             raise err
         
         predicted_value = None
-        self.total_time += (time.time()-t)
+        #self.total_time += (time.time()-t)
         return (action, pi, value, predicted_value, next_state, result, complete)
     
     def choose_action(self, pi, values, tau):
@@ -132,26 +139,40 @@ class Player:
             
             logging.info("Training neural network . . . ")
             hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
-    
+        
+        # clear the cache now that the model has been updated
+        self.posistions_cache = {}
+        
     def predict_state(self, state):
+        inp = state.env.binary
+        state_id = state.env.id
+        
         moves = state.env.get_legal_moves_idxs()
         legal_moves = np.array(moves).T
         
-        values, logits = self.model.predict_one(state.env.binary)
+        if state_id in self.positions_cache:
+            probs, values = self.positions_cache[state_id]
+            return probs, values, legal_moves
         
-        values = values[0]
-        logits = logits[0].reshape(12, 16)
-        
-        # make sure illegal moves aren't chosen
-        mask = np.ones(logits.shape, dtype=bool)
-        mask[legal_moves[0], legal_moves[1]] = False
-        logits[mask] = -100
-        
-        # put probabilities through softmax
-        exps = np.exp(logits)
-        probs = exps / np.sum(exps)
-        
-        return probs, values, logits, legal_moves
+        else:
+            values, logits = self.model.predict_one(inp)
+            
+            values = values[0]
+            logits = logits[0].reshape(12, 16)
+            
+            # make sure illegal moves aren't chosen
+            mask = np.ones(logits.shape, dtype=bool)
+            mask[legal_moves[0], legal_moves[1]] = False
+            logits[mask] = -100
+            
+            # put probabilities through softmax
+            exps = np.exp(logits)
+            probs = exps / np.sum(exps)
+            
+            # cache the values
+            self.positions_cache[state_id] = (probs, values)
+            
+            return probs, values, legal_moves
     
     def build_MCTS(self, state):
         root = MCTS.Node(state.copy())
