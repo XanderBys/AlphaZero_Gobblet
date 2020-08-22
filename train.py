@@ -47,6 +47,8 @@ try:
         curr_agent.train(memory.long_term)
         
         curr_model.save('', iteration)
+        with open("initialization.txt", "w+") as fout:
+            fout.write(str(iteration))
         
 except KeyboardInterrupt:
     pass

@@ -140,7 +140,7 @@ class Environment:
                         p.stack_number += 1
                         exit_flag = True
                         break
-    @jit       
+    #@jit       
     def get_result(self, state):
         # returns None if the game isn't over, 1 if white wins and -1 if black wins
         

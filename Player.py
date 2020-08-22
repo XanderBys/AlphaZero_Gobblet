@@ -1,27 +1,11 @@
 import random, time
 import pickle
-#import numba
+import multiprocessing, functools
 import numpy as np
 from State import State
 import MCTS
 import config
 import logging
-#logging.basicConfig(filename="logs/Player.log", level=logging.INFO)
-#@numba.jit
-#def get_probs(values, logits, legal_moves):
-#        values = values[0]
-#        logits = logits[0].reshape(12, 16)
-#        
-#        # make sure illegal moves aren't chosen
-#        mask = np.ones(logits.shape, dtype=bool)
-#        mask[legal_moves[0], legal_moves[1]] = False
-#        logits[mask] = -100
-#        
-#        # put probabilities through softmax
-#        exps = np.exp(logits)
-#        probs = exps / np.sum(exps)
-#        
-#        return probs, values, logits
 
 class Player:
     def __init__(self, name, env, num_sims, cpuct, model):
@@ -33,11 +17,12 @@ class Player:
         self.num_sims = num_sims
         self.cpuct = cpuct
         self.model = model
-        self.times = {}
+        self.times = {'leafing':0, 'evaluation':0, 'update':0}
         self.total_time = 0
         self.is_random = False
         
         self.positions_cache = {}
+        self.NUM_WORKERS = 2
         
         self.train_loss = []
         self.train_value_loss = []
@@ -50,7 +35,7 @@ class Player:
         #self.times['leafing'] += (time.time()-self.times['start'])
         logging.info("Navigated to leaf")
         self.times['start'] = time.time()
-        value, edges = self.evaluate_state(leaf, value, done, edges)
+        value = self.evaluate_state(leaf, value, done)
         #self.times['evaluation'] += (time.time()-self.times['start'])
         logging.info("Evaluated state")
         self.times['start'] = time.time()
@@ -58,24 +43,24 @@ class Player:
         #self.times['update'] += (time.time()-self.times['start'])
         logging.info("Updated nodes")
         
-    def evaluate_state(self, state, values, complete, edges):
+    def evaluate_state(self, state, values, complete):
         if not complete:
             logging.info("Predicting state . . .")
-            #t2=time.time()
-            probs, values, legal_moves = self.predict_state(state)
-            #self.time_sims+=(time.time()-t2)
+            value, probs, legal_moves = self.predict_state(state.env)
+            
             logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
-                if new_state.id not in self.mcts.tree.keys():
+                if new_state.id not in set(self.mcts.tree):
                     node = MCTS.Node(new_state.copy())
                     self.mcts.add_node(node)
                 else:
                     node = self.mcts.tree[new_state.id]
                 new_edge = MCTS.Edge(state, node, probs[action[0], action[1]], action)
                 state.edges.append((action, new_edge))
-        return (values, edges)
+        
+        return (value, edges)
     
     def move(self, state, tau):
         if self.mcts is None or state.id not in self.mcts.tree:
