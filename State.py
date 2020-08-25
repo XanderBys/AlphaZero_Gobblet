@@ -7,7 +7,7 @@ class State:
         if len(lower_layers) > 0:
             self.lower_layers = lower_layers
         else:
-            self.lower_layers = np.array([[[0 for i in range(len(board))] for j in range(len(board))] for k in range(len(board)-1)])
+            self.lower_layers = np.array([[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]])
     
     def get_empty_lower_layer(self):
         return State(self.board.copy())

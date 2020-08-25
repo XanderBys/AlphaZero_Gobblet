@@ -34,8 +34,7 @@ class MCTS:
         self.tree = {}
         self.cpuct = cpuct
         self.add_node(root)
-        logging.info("New Monte Carlo Tree created")
-    
+
     def __len__(self):
         return len(self.tree)
     
@@ -56,6 +55,7 @@ class MCTS:
                 nu = [0] * len(curr_node.edges)
             
             nb = sum(map(lambda edge: edge[1].data['N'], curr_node.edges))
+            nb = 1 if nb == 0 else nb
             
             idx = np.random.choice(range(len(curr_node.edges)))
             (sim_action, sim_edge) = curr_node.edges[idx]

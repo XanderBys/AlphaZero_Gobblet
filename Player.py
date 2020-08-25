@@ -22,12 +22,9 @@ class Player:
         self.is_random = False
         
         self.positions_cache = {}
-        self.NUM_WORKERS = 2
+        #self.NUM_WORKERS = 2
         
-        self.train_loss = []
-        self.train_value_loss = []
-        self.train_policy_loss = []
-        self.nn_MCTS_value_diff = []
+        self.nn_diff = []
     
     def run_simulation(self):
         self.times['start'] = time.time()
@@ -46,23 +43,23 @@ class Player:
     def evaluate_state(self, state, values, complete):
         if not complete:
             logging.info("Predicting state . . .")
-            value, probs, legal_moves = self.predict_state(state.env)
-            
+            probs, values, legal_moves = self.predict_state(state)
+            values *= (3/4)
             logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
-                if new_state.id not in set(self.mcts.tree):
-                    node = MCTS.Node(new_state.copy())
-                    self.mcts.add_node(node)
+                if new_state.id not in self.mcts.tree.keys():
+                    new_node = MCTS.Node(new_state.copy())
+                    self.mcts.add_node(new_node)
                 else:
-                    node = self.mcts.tree[new_state.id]
-                new_edge = MCTS.Edge(state, node, probs[action[0], action[1]], action)
-                state.edges.append((action, new_edge))
-        
-        return (value, edges)
+                    new_node = self.mcts.tree[new_state.id]
+                new_edge = MCTS.Edge(state, new_node, probs[action[0], action[1]], action)
+                state.edges.append((action, new_edge))     
+        return values
     
     def move(self, state, tau):
+        #import pdb;pdb.set_trace()
         if self.mcts is None or state.id not in self.mcts.tree:
             self.build_MCTS(state)
         else:
@@ -84,9 +81,10 @@ class Player:
             print(tree_state)
             raise err
         
-        predicted_value = None
+        nn_probs, nn_values, lm = self.predict_state(MCTS.Node(state))
+        self.nn_diff.append(np.sum(np.abs(nn_probs-pi)))
         #self.total_time += (time.time()-t)
-        return (action, pi, value, predicted_value, next_state, result, complete)
+        return (action, pi, value, nn_values, next_state, result, complete)
     
     def choose_action(self, pi, values, tau):
         if tau == 0:
@@ -130,7 +128,7 @@ class Player:
         
     def predict_state(self, state):
         inp = state.env.binary
-        state_id = state.env.id
+        state_id = state.env.bin_id
         
         moves = state.env.get_legal_moves_idxs()
         legal_moves = np.array(moves).T
@@ -209,3 +207,17 @@ class Human(Player):
         next_state, result, complete = state.update(action)
         
         return (action, 0, 0, 0, next_state, result, complete)
+
+class Raw_NN(Player):
+    def __init__(self, name, env, model):
+        super().__init__(name, env, 0, 0, model)
+    
+    def move(self, state, tau=None):
+        probs, values, legal_moves = self.predict_state(MCTS.Node(state))
+        
+        maxes = np.where(probs == np.amax(probs))
+        action = random.choice(list(zip(maxes[0], maxes[1])))
+        
+        next_state, result, complete = state.update(action)
+        
+        return (action, None, None, values, next_state, result, complete)

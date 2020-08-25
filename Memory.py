@@ -8,7 +8,7 @@ class Memory:
 
     def add_sample(self, sample, value=None):
         state, AVs = sample
-        self.short_term.append({'board': state.state, 'state': state, 'id': state.id, 'AV': AVs, 'turn': state.turn, 'value':value})
+        self.short_term.append({'board': state.state, 'state': state, 'id': state.bin_id, 'AV': AVs, 'turn': state.turn, 'value':value})
         
     def update_long_term(self):
         for i in self.short_term:

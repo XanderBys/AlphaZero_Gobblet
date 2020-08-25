@@ -84,7 +84,8 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
 #                plyaer2.total_time = 0
                 break
         if not single_match:
-            print("{} out of {} games complete in {} moves and {} seconds".format(i+1, EPISODES, turn_counter, time.time()-t))
+            t_elapsed = time.time()-t
+            print("{} out of {} games complete in {} moves and {:.1f}s ({:.3f}s/move)".format(i+1, EPISODES, turn_counter, t_elapsed, (t_elapsed/turn_counter)))
             logging.info("{} out of {} games complete in {} moves".format(i+1, EPISODES, turn_counter))
     
     if not single_match:

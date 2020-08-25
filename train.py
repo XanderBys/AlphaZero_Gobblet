@@ -9,7 +9,7 @@ from Player import Player
 from Memory import Memory
 from Model import Model
 from play_game import play_matches
-
+#import pdb;pdb.set_trace()
 env = Environment(4, 4, 4)
 memory = Memory()
 
