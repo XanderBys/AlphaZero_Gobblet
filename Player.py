@@ -26,25 +26,20 @@ class Player:
         
         self.nn_diff = []
     
-    def run_simulation(self):
-        self.times['start'] = time.time()
+    def run_simulation(self, t):
         leaf, value, done, edges = self.mcts.go_to_leaf()
-        #self.times['leafing'] += (time.time()-self.times['start'])
         logging.info("Navigated to leaf")
-        self.times['start'] = time.time()
+        
         value = self.evaluate_state(leaf, value, done)
-        #self.times['evaluation'] += (time.time()-self.times['start'])
         logging.info("Evaluated state")
-        self.times['start'] = time.time()
+
         self.mcts.update_nodes(leaf, value, edges)
-        #self.times['update'] += (time.time()-self.times['start'])
         logging.info("Updated nodes")
         
     def evaluate_state(self, state, values, complete):
         if not complete:
             logging.info("Predicting state . . .")
             probs, values, legal_moves = self.predict_state(state)
-            values *= (3/4)
             logging.info("Iterating through legal moves . . .")
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
@@ -66,13 +61,13 @@ class Player:
             self.change_MCTS_root(state)
         
         for sim in range(self.num_sims):
-            self.run_simulation()
+            self.run_simulation(state.turn)
             
         logging.info("Simulations complete")
         pi, vals = self.get_action_vals(1)
         action, value = self.choose_action(pi, vals, tau)
         tree_state = self.mcts.root.env
-        #action = (tree_state.pieces[tree_state.pieces_idx][action[0]], (action[1] // tree_state.NUM_COLS, action[1] % tree_state.NUM_COLS))
+        
         try:
             next_state, result, complete = tree_state.update(action)
             tree_state.undo_move()
@@ -83,7 +78,7 @@ class Player:
         
         nn_probs, nn_values, lm = self.predict_state(MCTS.Node(state))
         self.nn_diff.append(np.sum(np.abs(nn_probs-pi)))
-        #self.total_time += (time.time()-t)
+        
         return (action, pi, value, nn_values, next_state, result, complete)
     
     def choose_action(self, pi, values, tau):
@@ -128,7 +123,7 @@ class Player:
         
     def predict_state(self, state):
         inp = state.env.binary
-        state_id = state.env.bin_id
+        state_id = state.env.id
         
         moves = state.env.get_legal_moves_idxs()
         legal_moves = np.array(moves).T
@@ -198,8 +193,8 @@ class Human(Player):
     def move(self, state, tau=None):
         action = None
         
-        human_pieces = list(filter(lambda piece: piece.is_top_of_stack, state.pieces[state.pieces_idx]))
-        print("Your pieces are: {}".format(list(map(str, human_pieces))))
+        human_pieces = list(filter(lambda piece: piece["stack_number"]==0, state.pieces[state.pieces_idx]))
+        print("Your pieces are: {}".format(list(map(lambda x: "{} @ {}".format(x["size"], x["location"]), human_pieces))))
         row = int(input("Type a row to move to: "))
         col = int(input("Type a col to move to: "))
         idx = int(input("Type the index of the piece: "))

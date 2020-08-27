@@ -30,11 +30,11 @@ def play_matches(player1, player2, EPISODES, tau_counter, memory=None, verbose=F
             else:
                 # act deterministically
                 action, pi, tree_val, nn_val, next_state, result, complete = players[env.pieces_idx].move(env, 0)
-            
-            #logging.info("Move {} chosen".format(turn_counter))
+                
             env = next_state
             turn *= -1
             env.turn = int(turn)
+            
             if memory is not None:
                 memory.add_sample((env.copy(), pi))
                 

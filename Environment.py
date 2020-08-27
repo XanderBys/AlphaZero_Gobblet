@@ -8,11 +8,6 @@ class Environment:
     id_cache={}
     
     def __init__(self, NUM_ROWS, NUM_COLS, DEPTH):
-        self.state = None
-        self.prev_states = set()
-        self.duplicate_states = set()
-        self.draw_flag = False
-        self.turn = None
         self.temp_cp = None
         self.pieces = []
         self.name = 'Gobblet'
@@ -68,7 +63,7 @@ class Environment:
         # update the board and the player
         logging.info("Updating the board and pieces . . .")
         prev_occupant = int(self.state.board[location])
-        self.state.board[location] = turn * piece["size"]
+        self.state.board[location] = self.turn * piece["size"]
         piece["location"] = location
 
         self.update_pieces()
@@ -267,20 +262,10 @@ class Environment:
         positions = np.append(player1_positions, player2_positions)
         
         return positions
-  
-    @property
-    def bin_id(self):
-        dec_id = self.id
-        if dec_id in Environment.id_cache:
-            return Environment.id_cache[dec_id]
-        else:
-            bin_id = ''.join(map(str, self.binary))
-            Environment.id_cache[dec_id] = bin_id
-            return bin_id
         
     @property
     def id(self):
-        return ''.join(map(str, np.append(self.state.board, self.state.lower_layers)))
+        return str(self.turn)+''.join(map(str, np.append(self.state.board, self.state.lower_layers)))
     
     def copy(self):
         cp = Environment(self.NUM_ROWS, self.NUM_COLS, self.DEPTH)
@@ -296,7 +281,7 @@ class Environment:
         print()
     
     def __str__(self):
-        return "Current state:\n{}\n Pieces: {}\n Turn: {}\n".format(str(self.state), str(list(map(str, self.pieces[0])))+str(list(map(str, self.pieces[1]))), str(self.turn))
+        return "Current state:\n{}\n Pieces: {}\n Turn: {}\n".format(str(self.state), str(list(map(lambda x: "{} @ {}".format(x["size"], x["location"]), self.pieces[0])))+str(list(map(lambda x: "{} @ {}".format(x["size"], x["location"]), self.pieces[1]))), str(self.turn))
 
 if __name__ == '__main__':
     env = Environment(4, 4, 4)

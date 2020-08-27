@@ -22,4 +22,4 @@ if filepath == 'r':
 #import pdb;pdb.set_trace()
 play_matches(agent_2, agent, 100, 0, verbose=False)
 print(agent.nn_diff[:100])
-print(agent.nn_diff[:-100])
+print(agent.nn_diff[-100:])
