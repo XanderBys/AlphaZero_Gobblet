@@ -144,8 +144,5 @@ class Model:
         plot_model(self.nn, to_file="/home/pi/programs/Gobblet_AlphaZero/model_vizualization.png", show_shapes=True, show_layer_names=True)
     
 if __name__ == '__main__':
-    from Environment import Environment
-    env = Environment(4, 4, 4)
-
-    model = Model((4, 4, 4), 16*12, config.HIDDEN_LAYERS, config.REG_CONST, config.LEARNING_RATE)
+    model = Model((4, 16, 2), 16*12, config.HIDDEN_LAYERS, config.REG_CONST, config.LEARNING_RATE)
     model.plot()

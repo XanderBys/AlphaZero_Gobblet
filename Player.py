@@ -9,16 +9,12 @@ import logging
 
 class Player:
     def __init__(self, name, env, num_sims, cpuct, model):
-        self.GAMMA = 0.9
-        
         self.name = name
         self.env = env
         self.samples = []
         self.num_sims = num_sims
         self.cpuct = cpuct
         self.model = model
-        self.times = {'leafing':0, 'evaluation':0, 'update':0}
-        self.total_time = 0
         self.is_random = False
         
         self.positions_cache = {}
@@ -116,7 +112,7 @@ class Player:
                        'policy_head': np.array([sample['AV'] for sample in batch]).reshape(len(batch), 12*16)}
             
             logging.info("Training neural network . . . ")
-            hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
+            hist = self.model.train_batch(states.reshape(len(batch), 4, 16, 2), targets, epochs=config.EPOCHS).history
         
         # clear the cache now that the model has been updated
         self.posistions_cache = {}
@@ -208,11 +204,27 @@ class Raw_NN(Player):
         super().__init__(name, env, 0, 0, model)
     
     def move(self, state, tau=None):
-        probs, values, legal_moves = self.predict_state(MCTS.Node(state))
+        probs, value, legal_moves = self.predict_state(MCTS.Node(state))
+        values = np.zeros(len(legal_moves.T))
         
-        maxes = np.where(probs == np.amax(probs))
-        action = random.choice(list(zip(maxes[0], maxes[1])))
-        
+        for idx, action in enumerate(legal_moves.T):
+            new_state, val, complete = state.update(action)
+            prob, val, lm = self.predict_state(MCTS.Node(new_state))
+            state.undo_move()
+            values[idx] = val
+            
+        action = legal_moves.T[np.argmax(values)]
+        print(probs)
         next_state, result, complete = state.update(action)
         
         return (action, None, None, values, next_state, result, complete)
+
+class Raw_MCTS(Player):
+    def __init__(self, name, env, num_sims, cpuct):
+        super().__init__(name, env, num_sims, cpuct, None)
+    
+    def predict_state(self, state):
+        moves = state.env.get_legal_moves_idxs()
+        legal_moves = np.array(moves).T
+        
+        

@@ -23,7 +23,8 @@ try:
     print("Loading model with filename {} . . .".format(filename))
     curr_model.load(filename)
 except:
-    pass
+    iteration = 0
+    print("Starting a new model from scratch . . .")
 
 print("Initializing agent . . .")
 curr_agent = Player('curr_agent', env, config.MCTS_SIMS, config.CPUCT, curr_model)

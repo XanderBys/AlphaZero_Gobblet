@@ -8,6 +8,11 @@ class Environment:
     id_cache={}
     
     def __init__(self, NUM_ROWS, NUM_COLS, DEPTH):
+        self.state = None
+        self.prev_states = set()
+        self.duplicate_states = set()
+        self.draw_flag = False
+        self.turn = None
         self.temp_cp = None
         self.pieces = []
         self.name = 'Gobblet'
@@ -253,16 +258,18 @@ class Environment:
         # convert the state to a binary matrix
         board = np.append(self.state.board.reshape(-1), self.state.lower_layers.reshape(-1))
 
-        player1_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
-        player1_positions[np.sign(board)==-1*self.turn, np.abs(board[np.sign(board)==-1*self.turn])-1] = 1
+        player1_positions = np.zeros(len(board), dtype=np.int)
+        player1_positions[np.sign(board)==self.turn] = np.abs(board[np.sign(board)==self.turn])
+        player1_positions.reshape((4, 16))
         
-        player2_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
-        player2_positions[np.sign(board)==self.turn, np.abs(board[np.sign(board)==self.turn])-1] = 1
+        player2_positions = np.zeros(len(board), dtype=np.int)
+        player2_positions[np.sign(board)==-1*self.turn] = np.abs(board[np.sign(board)==-1*self.turn])
+        player1_positions.reshape((4, 16))
         
-        positions = np.append(player1_positions, player2_positions)
+        positions = np.stack((player1_positions, player2_positions), axis=-1)
         
         return positions
-        
+    
     @property
     def id(self):
         return str(self.turn)+''.join(map(str, np.append(self.state.board, self.state.lower_layers)))
