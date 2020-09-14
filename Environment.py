@@ -258,16 +258,13 @@ class Environment:
         # convert the state to a binary matrix
         board = np.append(self.state.board.reshape(-1), self.state.lower_layers.reshape(-1))
 
-        player1_positions = np.zeros(len(board), dtype=np.int)
-        player1_positions[np.sign(board)==self.turn] = np.abs(board[np.sign(board)==self.turn])
-        player1_positions.reshape((4, 16))
-        
-        player2_positions = np.zeros(len(board), dtype=np.int)
-        player2_positions[np.sign(board)==-1*self.turn] = np.abs(board[np.sign(board)==-1*self.turn])
-        player1_positions.reshape((4, 16))
-        
+        player1_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
+        player1_positions[np.sign(board)==self.turn, np.abs(board[np.sign(board)==self.turn])-1] = 1
+
+        player2_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
+        player2_positions[np.sign(board)==-1*self.turn, np.abs(board[np.sign(board)==-1*self.turn])-1] = 1
+
         positions = np.stack((player1_positions, player2_positions), axis=-1)
-        
         return positions
     
     @property
