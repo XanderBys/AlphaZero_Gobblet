@@ -256,15 +256,30 @@ class Environment:
     @property
     def binary(self):
         # convert the state to a binary matrix
-        board = np.append(self.state.board.reshape(-1), self.state.lower_layers.reshape(-1))
+	# final format will be 4 x 4 x 9 (ignore hidden pieces and use only current state for now)
+        plane_dim = self.state.board.shape
 
-        player1_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
-        player1_positions[np.sign(board)==self.turn, np.abs(board[np.sign(board)==self.turn])-1] = 1
+        color = np.zeros(plane_dim) if self.turn == -1 else np.ones(plane_dim)
 
-        player2_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
-        player2_positions[np.sign(board)==-1*self.turn, np.abs(board[np.sign(board)==-1*self.turn])-1] = 1
+        board = self.state.board.reshape(-1) #np.append(self.state.board.reshape(-1), self.state.lower_layers.reshape(-1))
 
-        positions = np.stack((player1_positions, player2_positions), axis=-1)
+        p1_pos = np.zeros((plane_dim[0], plane_dim[1], 4))
+        p1_locs = np.argwhere(np.sign(board.reshape(plane_dim))==1)
+        p1_pos[4-np.abs(self.state.board[p1_locs[:,0], p1_locs[:,1]]), p1_locs[:,0], p1_locs[:,1]] = 1
+
+        p2_pos = np.zeros((plane_dim[0], plane_dim[1], 4))
+        p2_locs = np.argwhere(np.sign(board.reshape(plane_dim))==-1)
+        p2_pos[4-np.abs(self.state.board[p2_locs[:,0], p2_locs[:,1]]), p2_locs[:,0], p2_locs[:,1]] = 1
+
+        p2_pos = np.append(p2_pos, color).reshape((-1, plane_dim[0], plane_dim[1]))
+        positions = np.concatenate((p1_pos, p2_pos))
+        #player1_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
+	#player1_positions[np.sign(board)==self.turn, np.abs(board[np.sign(board)==self.turn])-1] = 1
+
+        #player2_positions = np.zeros((len(board), self.DEPTH), dtype=np.int)
+        #player2_positions[np.sign(board)==-1*self.turn, np.abs(board[np.sign(board)==-1*self.turn])-1] = 1
+
+        #positions = np.stack((player1_positions, player2_positions), axis=-1)
         return positions
     
     @property
