@@ -24,19 +24,15 @@ class Player:
     
     def run_simulation(self, t):
         leaf, value, done, edges = self.mcts.go_to_leaf()
-        logging.info("Navigated to leaf")
         
         value = self.evaluate_state(leaf, value, done)
-        logging.info("Evaluated state")
-
+        
         self.mcts.update_nodes(leaf, value, edges)
-        logging.info("Updated nodes")
         
     def evaluate_state(self, state, values, complete):
         if not complete:
-            logging.info("Predicting state . . .")
             probs, values, legal_moves = self.predict_state(state)
-            logging.info("Iterating through legal moves . . .")
+            
             for action in legal_moves.T:
                 new_state, val, complete = state.env.update(action)
                 state.env.undo_move()
@@ -59,7 +55,6 @@ class Player:
         for sim in range(self.num_sims):
             self.run_simulation(state.turn)
             
-        logging.info("Simulations complete")
         pi, vals = self.get_action_vals(1)
         action, value = self.choose_action(pi, vals, tau)
         tree_state = self.mcts.root.env
