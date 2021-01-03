@@ -107,7 +107,7 @@ class Player:
                        'policy_head': np.array([sample['AV'] for sample in batch]).reshape(len(batch), 12*16)}
             
             logging.info("Training neural network . . . ")
-            hist = self.model.train_batch(states.reshape(len(batch), 64, 4, 2), targets, epochs=config.EPOCHS).history
+            hist = self.model.train_batch(states.reshape(len(batch), config.INPUT_SHAPE[0], config.INPUT_SHAPE[1], config.INPUT_SHAPE[2]), targets, epochs=config.EPOCHS).history
         
         # clear the cache now that the model has been updated
         self.posistions_cache = {}
