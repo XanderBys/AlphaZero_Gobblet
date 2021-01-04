@@ -47,6 +47,7 @@ try:
         print("\n\n==================== RETRAINING ====================")
         curr_agent.train(memory.long_term)
         
+        os.system("ls -l")
         curr_model.save('', iteration)
         with open("initialization.txt", "w+") as fout:
             fout.write(str(iteration))
